@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Town Approvals · Approval-Gate Policy Console (synthetic prototype)</title>
+<meta name="description" content="Unofficial synthetic prototype of Town's Approvals surface: a Townie asks before sending external communication, you set the policy (Allow once, Always allow, Reject, safe actions only), and the next run obeys it. No real accounts, no real sends.">
+<style>
+  :root {
+    --paper: #fafbf8;
+    --card: #ffffff;
+    --ink: #21211f;
+    --ink2: #4a4a47;
+    --ink3: #5c5c59;
+    --muted: #737367;
+    --line: #e6e4df;
+    --line2: #d8d5cf;
+    --red: #d93941;
+    --red-bg: #fbeceb;
+    --red-line: #efc9c8;
+    --green: #2e7d4f;
+    --green-bg: #e9f3ea;
+    --green-line: #cfe2d3;
+    --amber: #8a6414;
+    --amber-bg: #f7eeda;
+    --amber-line: #ecd9a8;
+    --chip-bg: #f0f0ed;
+    --radius: 16px;
+    --shadow: 0 1px 2px rgba(33,33,31,.05), 0 8px 18px rgba(33,33,31,.07);
+    --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  html, body { margin: 0; background: var(--paper); color: var(--ink); }
+  body { font-family: var(--font); font-size: 15px; line-height: 1.45; }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line);
+    background: var(--card);
+  }
+  .mark {
+    width: 26px; height: 26px; border-radius: 8px;
+    background: var(--ink); color: #fff;
+    display: grid; place-items: center;
+    font-weight: 800; font-size: 15px; line-height: 1;
+  }
+  .brand { display: flex; align-items: center; gap: 9px; font-weight: 800; font-size: 17px; letter-spacing: .01em; }
+  .brand small { color: var(--muted); font-weight: 500; font-size: 12px; }
+  .top-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .bell {
+    position: relative; width: 40px; height: 40px; border-radius: 12px;
+    border: 1px solid var(--line); background: var(--card);
+    display: grid; place-items: center; cursor: pointer;
+  }
+  .bell svg { width: 19px; height: 19px; }
+  .bell .badge {
+    position: absolute; top: -5px; right: -6px;
+    min-width: 18px; height: 18px; border-radius: 9px;
+    background: var(--red); color: #fff;
+    font-size: 11.5px; font-weight: 700; line-height: 18px;
+    display: grid; place-items: center;
+  }
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: #f0c98f; color: #6b4a1f;
+    display: grid; place-items: center;
+    font-weight: 800; font-size: 14px;
+    border: 1px solid #e4b876;
+  }
+
+  main { max-width: 560px; margin: 0 auto; padding: 18px 14px 30px; }
+
+  /* ---------- heading ---------- */
+  .heading { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  h1 { font-size: 24px; font-weight: 800; margin: 0; letter-spacing: -.01em; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 11px; border-radius: 999px;
+    font-size: 12.5px; font-weight: 700; white-space: nowrap;
+  }
+  .pill .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .pill.amber { color: var(--amber); background: var(--amber-bg); border: 1px solid var(--amber-line); }
+  .pill.amber .dot { background: #c08a2a; }
+  .pill.green { color: var(--green); background: var(--green-bg); border: 1px solid var(--green-line); }
+  .pill.green .dot { background: var(--green); }
+  .pill.red { color: var(--red); background: var(--red-bg); border: 1px solid var(--red-line); }
+  .pill.red .dot { background: var(--red); }
+  .pill.slate { color: var(--ink3); background: #f0f0ed; border: 1px solid var(--line); }
+  .pill.slate .dot { background: var(--ink3); }
+  .sub { margin: 4px 0 14px; color: var(--ink3); font-size: 14px; }
+
+  /* ---------- cards ---------- */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .toolrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 999px;
+    font-size: 12.5px; font-weight: 700;
+    background: var(--chip-bg); color: var(--ink3);
+    white-space: nowrap;
+  }
+  .chip svg { width: 13px; height: 13px; }
+  .chip.soft { font-weight: 600; }
+  .toolname { font-weight: 800; font-size: 15px; }
+  .toolmeta { color: var(--muted); font-size: 12.5px; }
+  h2 { font-size: 19px; font-weight: 800; margin: 12px 0 8px; letter-spacing: -.005em; }
+
+  .draft {
+    border: 1px solid var(--line2); border-radius: 12px;
+    background: #fbfbf9; padding: 11px 12px;
+  }
+  .draft .drow { display: flex; gap: 6px; margin-bottom: 8px; font-size: 13.5px; }
+  .draft .drow b { color: var(--ink3); min-width: 58px; }
+  .draft .drow span { color: var(--ink); overflow-wrap: anywhere; }
+  .draft .dbody { font-size: 13.5px; color: var(--ink2); margin-top: 2px; }
+
+  .reason-label { font-size: 12.5px; font-weight: 800; color: var(--ink3); text-transform: none; letter-spacing: 0; margin: 12px 0 4px; }
+  .reason { font-size: 14px; color: var(--ink2); }
+  .reason .who { font-weight: 800; color: var(--ink); }
+
+  .trustchips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .trustchips .chip { font-size: 11.5px; font-weight: 600; }
+  .iic { width: 13px; height: 13px; border: 1.4px solid currentColor; border-radius: 50%; display: grid; place-items: center; font-size: 9.5px; font-weight: 800; }
+  .safetyline { display: flex; align-items: center; gap: 7px; margin-top: 10px; font-size: 13px; color: var(--ink3); }
+  .safetyline .pin { width: 8px; height: 8px; border-radius: 50%; background: var(--amber); }
+
+  /* ---------- policy gate ---------- */
+  .gate-head {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 16.5px; font-weight: 800; margin: 4px 0 10px;
+  }
+  .gate-head .subchip { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .choicelist { display: flex; flex-direction: column; gap: 10px; }
+  .choice {
+    display: block; width: 100%;
+    min-height: 50px; padding: 10px 14px;
+    border-radius: 12px; text-align: left;
+    font-family: inherit; font-size: 15.5px; font-weight: 800; line-height: 1.3;
+    cursor: pointer;
+  }
+  .choice .cli { display: block; font-size: 12.5px; color: inherit; opacity: .72; font-weight: 500; margin-top: 3px; line-height: 1.35; }
+  .choice.primary { background: var(--ink); color: #fff; border: none; }
+  .choice.primary .cli { color: #d9d7d0; }
+  .choice.strong { background: var(--card); color: var(--ink); border: 1.5px solid var(--ink); }
+  .choice.strong .cli { color: var(--ink3); }
+  .choice.danger { background: var(--card); color: var(--red); border: 1.5px solid var(--red-line); }
+  .choice.danger .cli { color: #9c2f2d; }
+  .choice:focus-visible { outline: 2.5px solid var(--amber); outline-offset: 2px; }
+  .orphan { display: flex; align-items: center; gap: 12px; margin: 14px 0 2px; color: var(--muted); font-size: 12.5px; }
+  .orphan::before, .orphan::after { content: ""; height: 1px; background: var(--line); flex: 1; }
+  .switchrow {
+    display: flex; width: 100%; align-items: center; gap: 12px;
+    min-height: 50px; padding: 11px 14px;
+    border-radius: 12px; border: 1px solid var(--line);
+    background: var(--card); text-align: left; cursor: pointer;
+    font-family: inherit;
+  }
+  .switchrow .sr-text { flex: 1; text-align: left; }
+  .switchrow .sr-title { font-size: 15px; font-weight: 800; color: var(--ink); }
+  .switchrow .sr-sub { display: block; font-size: 12.5px; color: var(--ink3); font-weight: 500; margin-top: 2px; line-height: 1.35; }
+  .sw {
+    width: 46px; height: 28px; border-radius: 14px; flex: 0 0 auto;
+    border: 1.5px solid var(--line2); background: #efece6; position: relative;
+  }
+  .sw .knob { position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(33,33,31,.25); transition: left .18s; }
+  .switchrow[aria-pressed="true"] .sw { background: var(--green); border-color: var(--green); }
+  .switchrow[aria-pressed="true"] .sw .knob { left: 21px; }
+  .hint {
+    display: none; margin: 10px 0 0;
+    background: var(--amber-bg); border: 1px solid var(--amber-line);
+    border-radius: 12px; padding: 10px 12px;
+    font-size: 13.5px; color: #6b4f12; line-height: 1.45;
+  }
+  .hint b { color: #4c3a0d; }
+
+  /* ---------- outcome ---------- */
+  .outcome { animation: pop .22s ease-out; }
+  @keyframes pop { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+  .outcome .o-head { display: flex; align-items: center; gap: 9px; }
+  .outcome h2 { margin: 0; }
+  .outcome p { font-size: 14.5px; color: var(--ink2); margin: 8px 0 4px; line-height: 1.5; }
+  .outcome p b { color: var(--ink); }
+  .outcome .metaline { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+
+  .autorun {
+    border: 1px solid var(--green-line); background: var(--green-bg);
+    border-radius: 12px; padding: 11px 12px;
+    font-size: 13.5px; color: #1f4d2f; line-height: 1.5;
+  }
+  .autorun b { color: #163a21; }
+  .autorun .who { font-weight: 800; }
+
+  .safer {
+    border: 1.5px dashed var(--line2); background: var(--card);
+    border-radius: 12px; padding: 12px;
+  }
+  .safer .s-title { font-size: 14.5px; font-weight: 800; }
+  .safer .s-body { font-size: 13.5px; color: var(--ink2); margin: 5px 0 9px; line-height: 1.5; }
+  .safer button {
+    display: block; width: 100%;
+    min-height: 46px; padding: 9px 14px; border-radius: 11px;
+    background: var(--ink); color: #fff; border: none;
+    font-family: inherit; font-size: 15px; font-weight: 800; text-align: left; cursor: pointer;
+  }
+
+  /* ---------- next-run strip ---------- */
+  .nestrip { margin-top: 2px; }
+  .nestrip .ns-head { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 800; color: var(--ink3); }
+  .nsrow {
+    display: flex; align-items: center; gap: 9px;
+    border: 1px solid var(--line); border-radius: 12px;
+    background: var(--card); padding: 10px 12px; margin-top: 8px;
+    font-size: 13.5px; color: var(--ink2);
+  }
+  .nsrow .ns-ic { width: 26px; height: 26px; border-radius: 8px; background: var(--chip-bg); display: grid; place-items: center; flex: 0 0 auto; }
+  .nsrow .ns-ic svg { width: 15px; height: 15px; color: var(--ink3); }
+  .nsrow .ns-text { flex: 1; }
+  .nsrow .ns-text b { color: var(--ink); }
+  .nsrow .chip { font-size: 11.5px; font-weight: 700; white-space: normal; }
+
+  /* ---------- ledger ---------- */
+  .ledger { margin-top: 4px; }
+  .ledger-head { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 800; color: var(--ink3); text-transform: uppercase; letter-spacing: .06em; }
+  .entry {
+    display: flex; align-items: flex-start; gap: 9px;
+    border: 1px solid var(--line); border-radius: 11px;
+    background: var(--card); padding: 9px 12px; font-size: 13px; color: var(--ink2);
+  }
+  .entry .et-time { color: var(--muted); font-size: 12px; font-weight: 700; min-width: 48px; }
+  .entry .et-txt { flex: 1; line-height: 1.4; }
+  .entry .et-txt b { color: var(--ink); }
+  .entry:hover { border-color: var(--line2); }
+  .ledger .etc { margin: 8px 0; }
+
+  .sessionline {
+    display: flex; align-items: center; gap: 9px;
+    border: 1px solid var(--line2); border-radius: 12px;
+    background: var(--card); padding: 9px 12px; font-size: 13px; color: var(--ink3);
+  }
+  .sessionline .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ink3); flex: 0 0 auto; }
+  .sessionline .row { flex: 1; }
+  .sessionline .row b { color: var(--ink); font-weight: 800; }
+
+  /* ---------- footer ---------- */
+  footer { margin-top: 18px; text-align: center; }
+  .resetbtn {
+    background: none; border: 1px solid var(--line2); color: var(--ink3);
+    padding: 10px 16px; border-radius: 11px;
+    font-family: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer;
+  }
+  .disclaimer { margin-top: 10px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  /* ---------- helpers ---------- */
+  .hidden { display: none !important; }
+  .stack { display: flex; flex-direction: column; gap: 8px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="mark">T</div>
+    <div>Town <small>beta</small></div>
+  </div>
+  <div class="top-right">
+    <button class="bell" type="button" aria-label="Notifications, 2 pending">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 4.6C6.5 6.4 5.9 8.2 7.4 10.3 10.3 11.4 12.7 10.6 12.7 8.5 11.9 6.9 10.5 6.3 9.3 7.1 8.7 9.3 8.9 11.7 9.7 14.1 9.3 15.7 8.3 16.4 7.9 16.4 7.1 15.5 6.5 14.3 6.5 13.1 6.9 12.3 7.1 11.5 7 11.1 6.3 10.9 5.5 10.9 5.5 10.9 5.5 10.9 5.5 10.9 5.5 10.9 5.5 10.9 5.5 10.9"/><circle cx="8.6" cy="13.6" r="1.05"/><circle cx="15.9" cy="13.6" r="1.05"/><path d="M7.5 4.6C6.5 6.4 5.9 8.2 7.4 10.3 10.3 11.4 12.7 10.6 12.7 8.5 11.9 6.9 10.5 6.3 9.3 7.1 8.7 9.3 8.9 11.7 9.7 14.1 9.3 15.7 8.3 16.4 7.9 16.4 7.1 15.5 6.5 14.3 6.5 13.1 6.9 12.3 7.1 11.5 7 11.1 6.3 10.9 5.5 10.9 5.5 10.9 5.5 10.9 5.5 10.9 5.5 10.9 5.5 10.9 5.5 10.9" fill="none" opacity="0"/><path d="M7.5 17.2h9.4"/></svg>
+      <span class="badge" id="bellBadge">2</span>
+    </button>
+    <div class="avatar" aria-hidden="true">B</div>
+  </div>
+</header>
+
+<main aria-live="polite">
+  <section class="heading">
+    <h1>Approvals</h1>
+    <span class="pill amber" id="headPill"><span class="dot"></span><span id="headPillText">2 pending</span></span>
+  </section>
+  <p class="sub" id="headSub">Bo is paused on one action. Snap is waiting too.</p>
+
+  <!-- pending action -->
+  <section class="card" id="pendingCard">
+    <div class="toolrow">
+      <span class="chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3.5" width="18" height="13" rx="2"/><path d="M4.6 10.6h5.2M4.5 12.6h3.6"/><path d="M3 18.4h18"/><path d="M14.6 3.5h3v12.4M17.8 3.5h2.2v12.4"/></svg>
+        Email
+      </span>
+      <span class="toolname" id="toolName">Send email</span>
+      <span class="toolmeta" id="toolMeta">Gmail · connected</span>
+    </div>
+    <h2 id="pendingTitle">Bo wants to send an email</h2>
+    <div class="draft" id="draftBox">
+      <div class="drow"><b>To</b><span>Jordan Martin · jordan.martin@acmecorp.com</span></div>
+      <div class="drow"><b>Subject</b><span>Recap: Tuesday status call</span></div>
+      <div class="dbody">Hi Jordan, thanks for the call today. As agreed, the team will: 1) kick off the onboarding workshop Thursday at 10 AM, 2) share the integration milestone list by Friday, 3) set the follow-up review for next Tuesday. Full notes are attached.</div>
+    </div>
+    <div class="reason-label">Why Bo is asking</div>
+    <div class="reason"><span class="who">Bo</span> drafted this from your call notes because Jordan asked for a recap before 10 AM. It matches how you usually write. Bo will not send it until you approve.</div>
+    <div class="trustchips">
+      <span class="chip soft">Reads your inbox</span>
+      <span class="chip soft">Sends outside Town</span>
+      <span class="chip soft">Can't be unsent</span>
+      <span class="chip soft"><span class="iic">!</span> Reads inbox + sends externally</span>
+    </div>
+    <div class="safetyline"><span class="pin"></span><span>Bo is paused. Nothing is sent until you decide.</span></div>
+  </section>
+
+  <!-- policy gate -->
+  <section id="gate">
+    <div class="gate-head">What should Bo do? <span class="subchip">applies to this email</span></div>
+    <div class="choicelist">
+      <button class="choice primary" type="button" onclick="decide('once')">
+        Allow once
+        <span class="cli">Send just this email. Bo still asks next time.</span>
+      </button>
+      <button class="choice strong" type="button" onclick="decide('always')">
+        Always allow sending emails
+        <span class="cli">Bo stops asking to send emails for this session.</span>
+      </button>
+      <button class="choice danger" type="button" onclick="decide('reject')">
+        Reject
+        <span class="cli">Nothing goes out. Bo keeps the draft.</span>
+      </button>
+      <div class="orphan">or</div>
+      <button class="switchrow" type="button" role="switch" aria-pressed="false" onclick="toggleSafe()">
+        <span class="sw"><span class="knob"></span></span>
+        <span class="sr-text">
+          <span class="sr-title">Only safe actions</span>
+          <span class="sr-sub">Labels, archives, and drafts run on their own. Anything that contacts people still asks.</span>
+        </span>
+      </button>
+      <div class="hint" id="safeHint"><b>Note:</b> sending email is external communication, so Bo still needs your decision on this email. Safe actions would stop asking right away.</div>
+    </div>
+  </section>
+
+  <!-- next-run preview -->
+  <section class="card nestrip" id="nextStripCard">
+    <div class="ns-head">If Bo needs to send another email right now</div>
+    <div class="nsrow" id="nsRowA">
+      <span class="ns-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3.5" width="18" height="13" rx="2"/><path d="M4.6 10.6h5.2M4.5 12.6h3.6"/><path d="M3 18.4h18"/></svg></span>
+      <span class="ns-text"><b>Bo pauses and asks first.</b> Nothing runs without your OK.</span>
+      <span class="pill slate"><span class="dot"></span>Ask each time</span>
+    </div>
+  </section>
+
+  <!-- ledger -->
+  <section class="ledger">
+    <div class="ledger-head">Last activity</div>
+    <div class="etc"></div>
+    <div class="entry" id="entrySeed">
+      <span class="et-time">9:12 AM</span>
+      <span class="et-txt"><b>Bo</b> drafted "Recap: Tuesday status call" from your call notes.</span>
+      <span class="pill slate"><span class="dot"></span>Draft · no send</span>
+    </div>
+    <div class="etc"></div>
+    <div class="sessionline" id="sessionLine">
+      <span class="dot"></span>
+      <span class="row"><b>Session mode:</b> <span id="sessionModeText">Ask before any changes</span></span>
+    </div>
+  </section>
+
+  <footer>
+    <button class="resetbtn" type="button" onclick="resetDemo()">Reset walkthrough</button>
+    <p class="disclaimer">Synthetic prototype of Town's Approvals surface. No real emails, no real accounts, no actual sends. Not affiliated with Town.</p>
+  </footer>
+</main>
+
+<script>
+"use strict";
+var mode = "ask";             /* ask | safe */
+var emailPolicy = "ask";      /* ask | once | always | rejected */
+var shownNext = false;
+
+var $ = function (id) { return document.getElementById(id); };
+
+var ledgerEl = function (time, txt, pillCls, pillTxt, dotCls) {
+  var e = document.createElement("div");
+  e.className = "entry";
+  var t = document.createElement("span"); t.className = "et-time"; t.textContent = time;
+  var x = document.createElement("span"); x.className = "et-txt";
+  var parts = txt;
+  var i = parts.indexOf("*");
+  if (i >= 0) {
+    var pre = document.createElement("span"); pre.textContent = parts.slice(0, i);
+    var b = document.createElement("b"); b.textContent = parts.slice(i + 1, i + 1 + (parts.indexOf("*", i + 1) - i - 1));
+    var post = document.createElement("span"); post.textContent = parts.slice(parts.indexOf("*", i + 1) + 1);
+    x.appendChild(pre); x.appendChild(b); x.appendChild(post);
+  } else { x.textContent = parts; }
+  var p = document.createElement("span"); p.className = pillCls;
+  var d = document.createElement("span"); d.className = "dot"; d.style.background = dotCls;
+  var tx = document.createElement("span"); tx.textContent = pillTxt;
+  p.appendChild(d); p.appendChild(tx);
+  e.appendChild(t); e.appendChild(x); e.appendChild(p);
+  return e;
+};
+
+function setSession(text) { $("sessionModeText").textContent = text; }
+
+function swapOutcome(html) {
+  var wrap = document.createElement("div");
+  wrap.className = "outcome card";
+  wrap.innerHTML = html;
+  var target = $("pendingCard2") || $("pendingCard");
+  if (target) target.replaceWith(wrap);
+}
+
+function nsRow(icSvg, html, pillCls, pillTxt, dotCls) {
+  var row = document.createElement("div"); row.className = "nsrow";
+  var ic = document.createElement("span"); ic.className = "ns-ic";
+  ic.innerHTML = icSvg;
+  var t = document.createElement("span"); t.className = "ns-text";
+  var bold = html; t.innerHTML = bold;
+  var p = document.createElement("span"); p.className = pillCls;
+  var d = document.createElement("span"); d.className = "dot"; d.style.background = dotCls;
+  var tx = document.createElement("span"); tx.textContent = pillTxt;
+  p.appendChild(d); p.appendChild(tx);
+  row.appendChild(ic); row.appendChild(t); row.appendChild(p);
+  return row;
+}
+
+var mailIc = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3.5" width="18" height="13" rx="2"/><path d="M4.6 10.6h5.2M4.5 12.6h3.6"/><path d="M3 18.4h18"/></svg>';
+var safeIc = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18.5h14M5 15.5h14M5 12.5h14M5 9.5h14M5 6.5h14M5 4h14"/><path d="M7.6 5.6h8.8v12.8M12.2 5.6h0v12.8" opacity="0"/></svg>';
+var extIc = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="11" r="7.4"/><path d="M9.6 5.4l2.4 5.6M14.6 5.4l2.4 5.6"/><path d="M10.8 13.2h2.4"/></svg>';
+
+function renderNextStrip() {
+  var card = $("nextStripCard");
+  card.querySelectorAll(".nsrow").forEach(function (r) { r.remove(); });
+  var head = card.querySelector(".ns-head");
+  var modeLabel = "Ask each time";
+  var modeTxt = "<b>Bo pauses and asks first.</b> Nothing runs without your OK.";
+  if (emailPolicy === "always") { modeLabel = "Always allow"; modeTxt = "<b>Bo sends it right away.</b> No prompt, one audit entry."; }
+  else if (mode === "safe") { modeLabel = "Ask each time"; modeTxt = "<b>Bo pauses and asks first.</b> Email is external communication."; }
+  head.textContent = "If Bo needs to send another email right now";
+  card.appendChild(nsRow(mailIc, modeTxt, modeLabel === "Always allow" ? "pill green" : "pill slate", modeLabel, modeLabel === "Always allow" ? "#2e7d4f" : "#5c5c59"));
+  if (mode === "safe") {
+    card.appendChild(nsRow(safeIc, "<b>Labels, archives, and drafts run on their own.</b> Safe actions, no prompt.", "pill green", "Auto", "#2e7d4f"));
+  }
+}
+
+function decide(choice) {
+  var second = emailPolicy === "once" && shownNext;
+  var pill, title, body, metaline, autorun, after;
+  if (choice === "once") {
+    var onceSubj = second ? "Re: Recap: Tuesday status call" : "Recap: Tuesday status call";
+    var onceAt = second ? "9:28 AM" : "9:26 AM";
+    pill = '<span class="pill green"><span class="dot"></span>Allowed once</span>';
+    title = "Email sent";
+    body = '<p><b>"' + onceSubj + '"</b> went to Jordan at ' + onceAt + '. Bo continues with its next task. Nothing else was sent.</p>';
+    metaline = '<div class="metaline"><span class="pill slate"><span class="dot"></span>Ask each time stays on for the next email</span></div>';
+    autorun = "";
+    after = '<div class="safer" style="margin-top:10px"><div class="s-title">What happens next time?</div><div class="s-body">Bo wants to send again, it will pause here again and ask. Try it, or widen trust to emails.</div>' +
+      '<button type="button" onclick="showNext()">Show the next email Bo wants to send</button></div>';
+    emailPolicy = "once";
+  } else if (choice === "always") {
+    pill = '<span class="pill green"><span class="dot"></span>Always allow · Send email</span>';
+    title = "Email sent on its own";
+    body = second
+      ? '<p><b>"Re: Recap: Tuesday status call"</b> went to Jordan at 9:28 AM with no prompt. <b>Send email</b> is now <b>Always allow</b> for this session. It resets when this chat ends; to keep it, change it anytime in <b>Tools and Permissions</b>.</p>'
+      : '<p><b>"Recap: Tuesday status call"</b> went to Jordan at 9:26 AM with no prompt. <b>Send email</b> is now <b>Always allow</b> for this session. It resets when this chat ends; to keep it, change it anytime in <b>Tools and Permissions</b>.</p>';
+    metaline = '<div class="metaline"><span class="pill green"><span class="dot"></span>Session policy · Send email</span></div>';
+    autorun = second ? "" : '<div class="autorun" style="margin-top:10px"><span class="who">Bo</span> found a reply from Jordan and sent <b>"Re: Recap: Tuesday status call"</b> at 9:28 AM. Auto-run, no prompt. <b>1 item added to audit.</b></div>';
+    after = "";
+    emailPolicy = "always";
+    setSession(mode === "safe" ? "Always allow safe actions · Send email: Always allow" : "Ask before any changes · Send email: Always allow");
+    var dl = $("sessionLine").querySelector(".dot");
+    dl.style.background = mode === "safe" ? "#2e7d4f" : "#5c5c59";
+  } else if (choice === "reject") {
+    pill = '<span class="pill red"><span class="dot"></span>Rejected</span>';
+    title = "Email not sent";
+    body = '<p>Nothing went to Jordan. <b>Bo kept the draft</b> and moved on. Ask Bo to revise it or try again later. You can still change your mind before Bo tries again.</p>';
+    metaline = '<div class="metaline"><span class="pill slate"><span class="dot"></span>Draft kept · nothing sent</span></div>';
+    autorun = "";
+    after = '<div class="safer" style="margin-top:10px"><div class="s-title">Fewer prompts without losing control</div><div class="s-body">Keep <b>Send email</b> on <b>Ask each time</b>. Let safe actions run on their own: labels, archives, and drafts stop asking. Anything that contacts people still asks.</div>' +
+      '<button type="button" onclick="allowSafe()">Only safe actions for this session</button></div>';
+    emailPolicy = "rejected";
+  }
+  $("headPill").className = "pill green";
+  $("headPillText").textContent = "1 waiting · Snap";
+  $("headSub").textContent = "Snap is still waiting on its draft. Bo is ready for the next task.";
+  document.querySelectorAll("#gate").forEach(function (g) { g.className = "hidden"; });
+  swapOutcome('<div class="o-head">' + pill + "</div><h2>" + title + "</h2>" + body + metaline + autorun + after);
+  renderNextStrip();
+
+  if (choice === "once") {
+    insertLedger(second ? "9:28 AM" : "9:26 AM", (second ? "Sent *Re: Recap: Tuesday status call*" : "Sent *Recap: Tuesday status call*") + " to Jordan.", "pill green", "Allowed once", "#2e7d4f");
+  } else if (choice === "always") {
+    if (second) {
+      insertLedger("9:28 AM", "Bo sent *Re: Recap: Tuesday status call* on its own.", "pill green", "Always allow · auto-run", "#2e7d4f");
+    } else {
+      insertLedger("9:26 AM", "Bo sent *Recap: Tuesday status call* without a prompt.", "pill green", "Always allow", "#2e7d4f");
+      insertLedger("9:28 AM", "Bo sent *Re: Recap: Tuesday status call* on its own.", "pill green", "Auto-run · Always allow", "#2e7d4f");
+    }
+  } else if (choice === "reject") {
+    insertLedger("9:25 AM", "Rejected the send. Draft kept, nothing went out.", "pill red", "Rejected", "#d93941");
+  }
+}
+
+function showNext() {
+  var done = document.querySelector(".outcome");
+  var wrap = document.createElement("section");
+  wrap.className = "card outcome";
+  wrap.id = "pendingCard2";
+  wrap.innerHTML =
+    '<div class="toolrow"><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3.5" width="18" height="13" rx="2"/><path d="M4.6 10.6h5.2M4.5 12.6h3.6"/><path d="M3 18.4h18"/></svg>Email</span><span class="toolname">Send email</span><span class="toolmeta">Gmail · connected</span></div>' +
+    '<h2>Bo wants to send a reply</h2>' +
+    '<div class="draft"><div class="drow"><b>To</b><span>Jordan Martin · jordan.martin@acmecorp.com</span></div><div class="drow"><b>Subject</b><span>Re: Recap: Tuesday status call</span></div><div class="dbody">Thanks Jordan, and yes, Friday works for the milestone list. Adding Caroline to the workshop invite so she has time to prepare.</div></div>' +
+    '<div class="reason-label">Why Bo is asking</div>' +
+    '<div class="reason"><span class="who">Bo</span> wanted to confirm Friday works and loop in Caroline. <b>Ask each time</b> is still on for sending emails, so Bo paused again.</div>' +
+    '<div class="trustchips"><span class="chip soft">Sends outside Town</span><span class="chip soft">Can\'t be unsent</span></div>' +
+    '<div class="safetyline"><span class="pin"></span><span>Bo is paused. Nothing is sent until you decide.</span></div>';
+  done.after(wrap);
+  var gate = document.createElement("section");
+  gate.id = "gate";
+  gate.innerHTML = '<div class="gate-head">What should Bo do? <span class="subchip">same action as before</span></div>' +
+    '<div class="choicelist">' +
+    '<button class="choice primary" type="button" onclick="decide(\'once\')">Allow once<span class="cli">Send just this reply. Bo still asks next time.</span></button>' +
+    '<button class="choice strong" type="button" onclick="decide(\'always\')">Always allow sending emails<span class="cli">Bo stops asking to send emails for this session.</span></button>' +
+    '<button class="choice danger" type="button" onclick="decide(\'reject\')">Reject<span class="cli">Nothing goes out. Bo keeps the draft.</span></button>' +
+    "</div>";
+  var gateAnchor = document.querySelector(".safer");
+  if (gateAnchor) { gateAnchor.after(gate); } else { document.querySelector("main").appendChild(gate); }
+  shownNext = true;
+  var stripHead = $("nextStripCard").querySelector(".ns-head");
+  stripHead.textContent = "Same action, one minute later: it asked again";
+}
+
+function insertLedger(time, txt, pillCls, pillTxt, dotCls) {
+  var et = ledgerEl(time, txt, pillCls, pillTxt, dotCls);
+  var ref = document.querySelector(".sessionline");
+  ref.before(et);
+  ref.before(divGap());
+}
+
+function divGap() {
+  var g = document.createElement("div"); g.className = "etc"; return g;
+}
+
+function allowSafe() {
+  mode = "safe";
+  setSession("Always allow safe actions");
+  var line = $("sessionLine").querySelector(".dot");
+  line.style.background = "#2e7d4f";
+  renderNextStrip();
+  var safer = document.querySelector(".safer");
+  if (safer) safer.remove();
+  var ok = document.createElement("div");
+  ok.className = "outcome card";
+  ok.style.marginTop = "10px";
+  ok.innerHTML = '<div class="o-head"><span class="pill green"><span class="dot"></span>Only safe actions · on</span></div>' +
+    '<p><b>Safe actions now run on their own:</b> labels, archives, moving mail, and creating drafts. Anything that contacts people, like sending email, calendar invites, or Slack messages, still asks.</p>' +
+    '<p>You can widen or narrow this anytime in <b>Tools and Permissions</b>.</p>';
+  document.querySelector("main").insertBefore(ok, $("nextStripCard"));
+  insertLedger("9:27 AM", "You set the session to *Always allow safe actions*.", "pill green", "Session policy", "#2e7d4f");
+}
+
+function toggleSafe() {
+  var row = document.querySelector(".switchrow");
+  mode = mode === "safe" ? "ask" : "safe";
+  var on = mode === "safe";
+  row.setAttribute("aria-pressed", on ? "true" : "false");
+  $("safeHint").style.display = on ? "block" : "none";
+  setSession(on ? "Always allow safe actions" : "Ask before any changes");
+  var line = $("sessionLine").querySelector(".dot");
+  line.style.background = on ? "#2e7d4f" : "#5c5c59";
+  renderNextStrip();
+  if (on) {
+    insertLedger("9:24 AM", "You set the session to *Always allow safe actions*.", "pill green", "Session policy", "#2e7d4f");
+  }
+}
+
+function resetDemo() {
+  mode = "ask"; emailPolicy = "ask"; shownNext = false;
+  $("bellBadge").textContent = "2";
+  $("headPillText").textContent = "2 pending";
+  $("headSub").textContent = "Bo is paused on one action. Snap is waiting too.";
+  setSession("Ask before any changes");
+  var line = $("sessionLine").querySelector(".dot");
+  line.style.background = "#5c5c59";
+  renderNextStrip();
+  /* restore seed ledger */
+  var entries = document.querySelectorAll(".entry:not(#entrySeed)");
+  entries.forEach(function (e) { e.remove(); });
+  var gaps = document.querySelectorAll(".etc");
+  gaps.forEach(function (g) { g.remove(); });
+  /* drop outcome cards, extra gates, and extras */
+  document.querySelectorAll(".outcome").forEach(function (e) { e.remove(); });
+  document.querySelectorAll("#gate").forEach(function (g) { g.remove(); });
+  /* rebuild pending card from template */
+  var replace = document.createElement("section");
+  replace.id = "pendingCard";
+  replace.className = "card";
+  replace.innerHTML =
+    '<div class="toolrow"><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3.5" width="18" height="13" rx="2"/><path d="M4.6 10.6h5.2M4.5 12.6h3.6"/><path d="M3 18.4h18"/></svg>Email</span><span class="toolname">Send email</span><span class="toolmeta">Gmail · connected</span></div>' +
+    '<h2>Bo wants to send an email</h2>' +
+    '<div class="draft"><div class="drow"><b>To</b><span>Jordan Martin · jordan.martin@acmecorp.com</span></div><div class="drow"><b>Subject</b><span>Recap: Tuesday status call</span></div><div class="dbody">Hi Jordan, thanks for the call today. As agreed, the team will: 1) kick off the onboarding workshop Thursday at 10 AM, 2) share the integration milestone list by Friday, 3) set the follow-up review for next Tuesday. Full notes are attached.</div></div>' +
+    '<div class="reason-label">Why Bo is asking</div>' +
+    '<div class="reason"><span class="who">Bo</span> drafted this from your call notes because Jordan asked for a recap before 10 AM. It matches how you usually write. Bo will not send it until you approve.</div>' +
+    '<div class="trustchips"><span class="chip soft">Reads your inbox</span><span class="chip soft">Sends outside Town</span><span class="chip soft">Can\'t be unsent</span><span class="chip soft"><span class="iic">!</span> Reads inbox + sends externally</span></div>' +
+    '<div class="safetyline"><span class="pin"></span><span>Bo is paused. Nothing is sent until you decide.</span></div>';
+  /* rebuild gate from template */
+  var gate = document.createElement("section");
+  gate.id = "gate";
+  gate.innerHTML =
+    '<div class="gate-head">What should Bo do? <span class="subchip">applies to this email</span></div>' +
+    '<div class="choicelist">' +
+    '<button class="choice primary" type="button" onclick="decide(\'once\')">Allow once<span class="cli">Send just this email. Bo still asks next time.</span></button>' +
+    '<button class="choice strong" type="button" onclick="decide(\'always\')">Always allow sending emails<span class="cli">Bo stops asking to send emails for this session.</span></button>' +
+    '<button class="choice danger" type="button" onclick="decide(\'reject\')">Reject<span class="cli">Nothing goes out. Bo keeps the draft.</span></button>' +
+    '<div class="orphan">or</div>' +
+    '<button class="switchrow" type="button" role="switch" aria-pressed="false" onclick="toggleSafe()"><span class="sw"><span class="knob"></span></span>' +
+    '<span class="sr-text"><span class="sr-title">Only safe actions</span><span class="sr-sub">Labels, archives, and drafts run on their own. Anything that contacts people still asks.</span></span></button>' +
+    '<div class="hint" id="safeHint"><b>Note:</b> sending email is external communication, so Bo still needs your decision on this email. Safe actions would stop asking right away.</div>' +
+    "</div>";
+  var main = document.querySelector("main");
+  main.insertBefore(replace, main.querySelector("#nextStripCard"));
+  main.insertBefore(gate, main.querySelector("#nextStripCard"));
+}
+</script>
+</body>
+</html>
